@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tournament Manager</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(18, 26, 51, 0.78);
+      --line: rgba(255,255,255,0.12);
+      --text: #ecf1ff;
+      --muted: #aab5d6;
+      --accent: #7c9cff;
+      --danger: #ff7a9a;
+      --gold: #ffcf66;
+      --shadow: 0 20px 60px rgba(0,0,0,0.38);
+      --radius: 22px;
+      --card-w: 220px;
+      --card-h: 80px;
+      --connector-w: 54px;
+      --match-gap: 8px;
+      --round-gap: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, "Noto Sans JP", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(124,156,255,0.24), transparent 32%),
+        radial-gradient(circle at top right, rgba(96,230,197,0.14), transparent 28%),
+        linear-gradient(160deg, #090d1a 0%, #0d1326 45%, #0a1020 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: radial-gradient(circle at center, black 45%, transparent 90%);
+      opacity: 0.7;
+    }
+
+    .app {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.25fr 0.9fr;
+      gap: 20px;
+      align-items: stretch;
+      margin-bottom: 22px;
+    }
+
+    .glass {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .hero-main {
+      padding: 26px;
+      position: relative;
+      overflow: hidden;
+      min-height: 220px;
+    }
+
+    .hero-main::after {
+      content: "";
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      right: -70px;
+      top: -110px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,156,255,0.24), transparent 60%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 16px 0 10px;
+      font-size: clamp(28px, 3.2vw, 48px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .lead {
+      max-width: 760px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 15px;
+      margin: 0;
+    }
+
+    .hero-side {
+      padding: 22px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .share-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+
+    .panel p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input, textarea, select, button {
+      font: inherit;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 12px 14px;
+      outline: none;
+      transition: 180ms ease;
+    }
+
+    textarea {
+      min-height: 190px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: rgba(124,156,255,0.72);
+      box-shadow: 0 0 0 4px rgba(124,156,255,0.15);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      border-radius: 14px;
+      padding: 12px 16px;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), #5774ff);
+      box-shadow: 0 12px 28px rgba(87, 116, 255, 0.28);
+      transition: transform 140ms ease, box-shadow 140ms ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(1px); }
+
+    .ghost {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      box-shadow: none;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .danger {
+      background: linear-gradient(135deg, #ff6b90, #ff4f77);
+      box-shadow: 0 12px 28px rgba(255,79,119,0.24);
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .badge {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .cards-wrap {
+      display: grid;
+      gap: 16px;
+    }
+
+    .participant-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .participant-card {
+      position: relative;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+      min-height: 88px;
+    }
+
+    .participant-card::before {
+      content: "";
+      position: absolute;
+      inset: auto -25px -25px auto;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,156,255,0.22), transparent 70%);
+    }
+
+    .participant-seed {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .participant-name {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+
+    .tournament-shell {
+      padding: 18px;
+      overflow: auto;
+    }
+
+    .board-wrap {
+      position: relative;
+      min-width: 980px;
+    }
+
+    .connector-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 0;
+    }
+
+    .connector-path {
+      fill: none;
+      stroke: rgba(255,255,255,0.16);
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .board {
+      min-width: 980px;
+      display: flex;
+      gap: 42px;
+      align-items: flex-start;
+      padding: 10px 4px 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .round {
+      min-width: calc(var(--card-w) + 86px);
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .round-slots {
+      display: grid;
+      gap: var(--round-gap);
+      align-content: start;
+    }
+
+    .round-header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      margin-bottom: 6px;
+      display: inline-flex;
+      align-self: flex-start;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+    }
+
+    .match-slot {
+      position: relative;
+      height: var(--slot-height);
+      display: flex;
+      align-items: center;
+    }
+
+    .match {
+      width: var(--card-w);
+      display: grid;
+      gap: var(--match-gap);
+      position: relative;
+    }
+
+    body.view-only-mode .controls {
+      grid-template-columns: 1fr;
+    }
+
+    body.view-only-mode .cards-wrap {
+      grid-template-columns: minmax(300px, 420px) 1fr;
+      align-items: start;
+    }
+
+    body.view-only-mode .cards-wrap > div:first-child {
+      min-width: 0;
+    }
+
+    body.view-only-mode .cards-wrap > div:last-child {
+      min-width: 0;
+    }
+
+    .team-card {
+      position: relative;
+      min-height: var(--card-h);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      overflow: hidden;
+      transition: 200ms ease;
+    }
+
+    .team-card::before {
+      content: "";
+      position: absolute;
+      inset: auto -24px -24px auto;
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,156,255,0.25), transparent 70%);
+      opacity: .75;
+    }
+
+    .team-card.clickable:hover {
+      border-color: rgba(124,156,255,0.55);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+    }
+
+    .team-card.disabled {
+      opacity: 0.55;
+      filter: saturate(0.7);
+      cursor: not-allowed;
+    }
+
+    .team-card.winner {
+      border-color: rgba(255, 207, 102, 0.82);
+      background: linear-gradient(180deg, rgba(255, 207, 102, 0.16), rgba(255, 207, 102, 0.06));
+      box-shadow:
+        0 0 0 1px rgba(255, 207, 102, 0.30) inset,
+        0 12px 28px rgba(255, 207, 102, 0.14),
+        0 0 28px rgba(255, 207, 102, 0.10);
+    }
+
+    .team-card.loser {
+      opacity: 0.55;
+      filter: grayscale(0.15);
+    }
+
+    .team-main {
+      min-width: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .team-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .team-name {
+      font-size: 16px;
+      font-weight: 700;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+
+    .winner-mark {
+      position: relative;
+      z-index: 1;
+      flex: 0 0 auto;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      font-size: 14px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+    }
+
+    .team-card.winner .winner-mark {
+      background: rgba(255, 207, 102, 0.18);
+      border-color: rgba(255, 207, 102, 0.45);
+      color: var(--gold);
+      box-shadow: 0 0 16px rgba(255, 207, 102, 0.18);
+    }
+
+    .champion-pedestal {
+      min-width: 250px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .champion-card {
+      width: 100%;
+      max-width: 260px;
+      min-height: 220px;
+      padding: 24px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,207,102,0.22), rgba(255,255,255,0.05));
+      border: 1px solid rgba(255,207,102,0.45);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.28), 0 0 36px rgba(255,207,102,0.10);
+      display: grid;
+      align-content: center;
+      gap: 12px;
+      text-align: center;
+      position: sticky;
+      top: 20px;
+    }
+
+    .champion-icon {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+      background: rgba(255,207,102,0.16);
+      border: 1px solid rgba(255,207,102,0.45);
+      color: var(--gold);
+    }
+
+    .champion-label {
+      color: rgba(255,233,182,0.92);
+      font-size: 12px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .champion-name {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.12;
+    }
+
+    .champion-sub {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      min-width: 260px;
+      max-width: 360px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(10, 16, 32, 0.9);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: 180ms ease;
+      z-index: 50;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 8, 18, 0.62);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 40;
+      backdrop-filter: blur(6px);
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      width: min(560px, 100%);
+      padding: 24px;
+      border-radius: 26px;
+      background: rgba(16, 24, 46, 0.97);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: var(--shadow);
+      transform: scale(.96);
+      opacity: 0;
+      transition: 180ms ease;
+    }
+
+    .modal-backdrop.open .modal {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .modal h3 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+
+    .modal p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .versus {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .versus button {
+      width: 100%;
+      justify-content: space-between;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 18px;
+    }
+
+    .versus small {
+      opacity: .78;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .hidden { display: none !important; }
+    .pulse-in { animation: pulseIn 560ms cubic-bezier(.2,.8,.2,1); }
+    .slide-in { animation: slideIn 460ms cubic-bezier(.2,.8,.2,1); }
+
+    @keyframes pulseIn {
+      0% { transform: scale(.92); opacity: .25; }
+      60% { transform: scale(1.03); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes slideIn {
+      0% { transform: translateY(16px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    @media (max-width: 1180px) {
+      .hero, .controls {
+        grid-template-columns: 1fr;
+      }
+      .board {
+        min-width: 920px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app { padding: 16px; }
+      .stat-grid { grid-template-columns: 1fr; }
+      .share-row { grid-template-columns: 1fr; }
+      .board {
+        gap: 24px;
+        min-width: 820px;
+      }
+      body.view-only-mode .cards-wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="hero">
+      <div class="hero-main glass">
+        <div class="eyebrow">Tournament / One Page / GitHub Pages</div>
+        <h1>トーナメント管理ツール</h1>
+        <p class="lead">
+          8人・16人の参加者に対応したシングルエリミネーショントーナメント。
+          参加者カード、勝敗クリック登録、共有URLによる閲覧モードを搭載。
+          1ページで動かせます。
+        </p>
+        <div class="badge-row">
+          <span class="badge">8人 / 16人対応</span>
+          <span class="badge">localStorage 保存</span>
+          <span class="badge">共有URLで閲覧</span>
+        </div>
+      </div>
+
+      <aside class="hero-side glass">
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="stat-label">Mode</div>
+            <div class="stat-value" id="modeStat">編集</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Entrants</div>
+            <div class="stat-value" id="entrantStat">8</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Matches</div>
+            <div class="stat-value" id="matchStat">7</div>
+          </div>
+        </div>
+        <div>
+          <label for="shareUrl">共有URL</label>
+          <div class="share-row">
+            <input id="shareUrl" readonly />
+            <button id="copyUrlBtn">URLコピー</button>
+            <button id="openViewBtn" class="ghost">閲覧で開く</button>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="controls">
+      <div class="panel glass" id="editorPanel">
+        <h2>設定</h2>
+        <p>参加人数を選び、名前を改行区切りで入力してトーナメントを生成します。<BR>閲覧モードでは編集UIは非表示になります。</p>
+        <div class="form-grid">
+          <div>
+            <label for="sizeSelect">参加人数</label>
+            <select id="sizeSelect">
+              <option value="8">8人</option>
+              <option value="16">16人</option>
+            </select>
+          </div>
+          <div>
+            <label for="titleInput">大会名</label>
+            <input id="titleInput" type="text" placeholder="例：春の交流トーナメント" value="Spring Tournament" />
+          </div>
+          <div>
+            <label for="namesInput">参加者名（改行区切り）</label>
+            <textarea id="namesInput">Player 1
+Player 2
+Player 3
+Player 4
+Player 5
+Player 6
+Player 7
+Player 8</textarea>
+          </div>
+          <div class="btn-row">
+            <button id="generateBtn">トーナメント生成</button>
+            <button id="resetBtn" class="ghost">勝敗をリセット</button>
+            <button id="sample16Btn" class="ghost">16人サンプル</button>
+            <button id="clearBtn" class="danger">全消去</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel glass cards-wrap">
+        <div>
+          <h2 id="tournamentTitle">Spring Tournament</h2>
+          <p id="subText">参加者カードとトーナメント表を同期表示します。</p>
+        </div>
+        <div>
+          <label>参加者カード</label>
+          <div class="participant-grid" id="participantGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tournament-shell glass">
+      <div id="board"></div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="matchModalBackdrop">
+    <div class="modal">
+      <h3>勝者を選択</h3>
+      <p id="modalText">この試合の勝者を選ぶと、次の試合カードへ反映されます。</p>
+      <div class="versus" id="versusButtons"></div>
+      <div class="btn-row">
+        <button class="ghost" id="closeModalBtn">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'rich_tournament_state_v1';
+    const DEFAULT_TITLE = 'Spring Tournament';
+    const DEFAULT_SIZE = 8;
+
+    const state = {
+      title: DEFAULT_TITLE,
+      size: DEFAULT_SIZE,
+      participants: [],
+      rounds: [],
+      viewOnly: false,
+      selectedMatch: null,
+    };
+
+    const els = {
+      sizeSelect: document.getElementById('sizeSelect'),
+      titleInput: document.getElementById('titleInput'),
+      namesInput: document.getElementById('namesInput'),
+      generateBtn: document.getElementById('generateBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      sample16Btn: document.getElementById('sample16Btn'),
+      clearBtn: document.getElementById('clearBtn'),
+      participantGrid: document.getElementById('participantGrid'),
+      board: document.getElementById('board'),
+      tournamentTitle: document.getElementById('tournamentTitle'),
+      subText: document.getElementById('subText'),
+      shareUrl: document.getElementById('shareUrl'),
+      copyUrlBtn: document.getElementById('copyUrlBtn'),
+      openViewBtn: document.getElementById('openViewBtn'),
+      modeStat: document.getElementById('modeStat'),
+      entrantStat: document.getElementById('entrantStat'),
+      matchStat: document.getElementById('matchStat'),
+      editorPanel: document.getElementById('editorPanel'),
+      matchModalBackdrop: document.getElementById('matchModalBackdrop'),
+      modalText: document.getElementById('modalText'),
+      versusButtons: document.getElementById('versusButtons'),
+      closeModalBtn: document.getElementById('closeModalBtn'),
+      toast: document.getElementById('toast'),
+    };
+
+    function makeId() {
+      return Math.random().toString(36).slice(2, 10);
+    }
+
+    function createDefaultNames(size) {
+      return Array.from({ length: size }, (_, i) => `Player ${i + 1}`).join('\n');
+    }
+
+    function getPersistedState() {
+      return {
+        title: state.title,
+        size: state.size,
+        participants: state.participants,
+        rounds: state.rounds,
+      };
+    }
+
+    function escapeHtml(str = '') {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add('show');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => {
+        els.toast.classList.remove('show');
+      }, 1800);
+    }
+
+    function generateParticipants(size, rawNames) {
+      const cleaned = rawNames
+        .split('\n')
+        .map(v => v.trim())
+        .filter(Boolean)
+        .slice(0, size);
+
+      while (cleaned.length < size) {
+        cleaned.push(`Player ${cleaned.length + 1}`);
+      }
+
+      return cleaned.map((name, index) => ({
+        id: makeId(),
+        seed: index + 1,
+        name,
+      }));
+    }
+
+    function createEmptyRounds(participants) {
+      const rounds = [];
+      let current = participants.map((p) => ({ ...p }));
+      let roundIndex = 0;
+
+      while (current.length > 1) {
+        const matches = [];
+        for (let i = 0; i < current.length; i += 2) {
+          matches.push({
+            id: makeId(),
+            team1: current[i] ? { ...current[i] } : null,
+            team2: current[i + 1] ? { ...current[i + 1] } : null,
+            winnerId: null,
+            roundIndex,
+            matchIndex: matches.length,
+          });
+        }
+        rounds.push(matches);
+        current = Array(matches.length).fill(null);
+        roundIndex++;
+      }
+
+      return rounds;
+    }
+
+    function createTournament({ title, size, names }) {
+      state.title = title?.trim() || 'Tournament';
+      state.size = Number(size);
+      state.participants = generateParticipants(state.size, names);
+      state.rounds = createEmptyRounds(state.participants);
+      syncInputsFromState();
+      saveState();
+      renderAll();
+      showToast('トーナメントを生成しました');
+    }
+
+    function getRoundLabel(idx, totalRounds) {
+      const remain = totalRounds - idx;
+      if (remain === 1) return 'Final';
+      if (remain === 2) return 'Semifinal';
+      if (remain === 3) return 'Quarterfinal';
+      return `Round ${idx + 1}`;
+    }
+
+    function getWinner(match) {
+      if (!match?.winnerId) return null;
+      return [match.team1, match.team2].find((t) => t && t.id === match.winnerId) || null;
+    }
+
+    function updateNextRound(roundIndex, matchIndex) {
+      const nextRound = state.rounds[roundIndex + 1];
+      if (!nextRound) return;
+
+      const winner = getWinner(state.rounds[roundIndex][matchIndex]);
+      const nextMatchIndex = Math.floor(matchIndex / 2);
+      const slot = matchIndex % 2 === 0 ? 'team1' : 'team2';
+
+      nextRound[nextMatchIndex][slot] = winner ? { ...winner } : null;
+      nextRound[nextMatchIndex].winnerId = null;
+      clearDescendants(roundIndex + 1, nextMatchIndex);
+    }
+
+    function clearDescendants(roundIndex, matchIndex) {
+      const round = state.rounds[roundIndex];
+      if (!round) return;
+
+      const match = round[matchIndex];
+      if (!match) return;
+
+      match.winnerId = null;
+      const nextRound = state.rounds[roundIndex + 1];
+      if (!nextRound) return;
+
+      const nextMatchIndex = Math.floor(matchIndex / 2);
+      const slot = matchIndex % 2 === 0 ? 'team1' : 'team2';
+      nextRound[nextMatchIndex][slot] = null;
+      clearDescendants(roundIndex + 1, nextMatchIndex);
+    }
+
+    function setWinner(roundIndex, matchIndex, winnerId) {
+      const match = state.rounds[roundIndex][matchIndex];
+      if (!match || !match.team1 || !match.team2) return;
+
+      match.winnerId = winnerId;
+      updateNextRound(roundIndex, matchIndex);
+      saveState();
+      renderAll({ animateRound: roundIndex + 1, animateMatch: Math.floor(matchIndex / 2) });
+      closeModal();
+
+      const winner = getWinner(match);
+      if (winner) showToast(`${winner.name} が勝利しました`);
+    }
+
+    function resetMatches() {
+      createTournament({
+        title: state.title,
+        size: state.size,
+        names: state.participants.map((p) => p.name).join('\n'),
+      });
+      showToast('勝敗をリセットしました');
+    }
+
+    function clearAll() {
+      localStorage.removeItem(STORAGE_KEY);
+      history.replaceState({}, '', location.pathname);
+
+      state.title = DEFAULT_TITLE;
+      state.size = DEFAULT_SIZE;
+      state.participants = generateParticipants(DEFAULT_SIZE, createDefaultNames(DEFAULT_SIZE));
+      state.rounds = createEmptyRounds(state.participants);
+      state.viewOnly = false;
+
+      syncInputsFromState();
+      renderAll();
+      showToast('データを削除しました');
+    }
+
+    function serializeState() {
+      return btoa(unescape(encodeURIComponent(JSON.stringify(getPersistedState()))));
+    }
+
+    function deserializeState(encoded) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+        if (!parsed || !Array.isArray(parsed.participants) || !Array.isArray(parsed.rounds)) {
+          throw new Error('Invalid state');
+        }
+        state.title = parsed.title || DEFAULT_TITLE;
+        state.size = Number(parsed.size) || DEFAULT_SIZE;
+        state.participants = parsed.participants;
+        state.rounds = parsed.rounds;
+        return true;
+      } catch (error) {
+        console.error(error);
+        showToast('共有URLの読み込みに失敗しました');
+        return false;
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(getPersistedState()));
+      updateShareUrl();
+    }
+
+    function loadState() {
+      const params = new URLSearchParams(location.search);
+      const data = params.get('data');
+      const mode = params.get('mode');
+
+      if (data) {
+        const ok = deserializeState(data);
+        state.viewOnly = mode === 'view';
+        if (ok) return true;
+      }
+
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          state.title = parsed.title || DEFAULT_TITLE;
+          state.size = Number(parsed.size) || DEFAULT_SIZE;
+          state.participants = parsed.participants || [];
+          state.rounds = parsed.rounds || [];
+          return true;
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
+      return false;
+    }
+
+    function syncInputsFromState() {
+      els.sizeSelect.value = String(state.size);
+      els.titleInput.value = state.title;
+      els.namesInput.value = state.participants.map((p) => p.name).join('\n');
+    }
+
+    function updateShareUrl() {
+      const encoded = serializeState();
+      const url = new URL(location.href);
+      url.searchParams.set('mode', 'view');
+      url.searchParams.set('data', encoded);
+      els.shareUrl.value = url.toString();
+    }
+
+    function renderParticipants() {
+      els.participantGrid.innerHTML = state.participants.map((p) => `
+        <article class="participant-card slide-in">
+          <div class="participant-seed">Seed ${p.seed}</div>
+          <div class="participant-name">${escapeHtml(p.name)}</div>
+        </article>
+      `).join('');
+    }
+
+    function getSlotHeight(roundIndex) {
+      const matchHeight = (80 * 2) + 8;
+      const roundGap = 18;
+      const factor = 2 ** roundIndex;
+      return (matchHeight * factor) + (roundGap * (factor - 1));
+    }
+
+    function renderTeamCard(team, match, teamIndex, winner, roundIndex, matchIndex) {
+      const hasTwoTeams = !!(match.team1 && match.team2);
+      const isWinner = winner && team && winner.id === team.id;
+      const isLoser = winner && team && winner.id !== team.id;
+      const clickable = hasTwoTeams && !state.viewOnly ? 'clickable' : '';
+      const disabled = !hasTwoTeams || state.viewOnly ? 'disabled' : '';
+      const cls = ['team-card', clickable, disabled, isWinner ? 'winner' : '', isLoser ? 'loser' : ''].join(' ').trim();
+      const label = team ? `Seed ${team.seed}` : 'Waiting';
+      const name = team ? team.name : 'TBD';
+      const icon = isWinner ? '✓' : '•';
+
+      return `
+        <div class="${cls}" data-round="${roundIndex}" data-match="${matchIndex}" data-team="${teamIndex}">
+          <div class="team-main">
+            <div class="team-label">${escapeHtml(label)}</div>
+            <div class="team-name">${escapeHtml(name)}</div>
+          </div>
+          <div class="winner-mark">${icon}</div>
+        </div>
+      `;
+    }
+
+    function renderBoard(options = {}) {
+      const totalRounds = state.rounds.length;
+      const championRound = state.rounds[totalRounds - 1];
+      const champion = championRound?.[0] ? getWinner(championRound[0]) : null;
+
+      let html = '<div class="board-wrap"><svg class="connector-layer" id="connectorLayer" aria-hidden="true"></svg><div class="board">';
+
+      state.rounds.forEach((round, rIndex) => {
+        const slotHeight = getSlotHeight(rIndex);
+        html += `<section class="round" style="--slot-height: ${slotHeight}px"><div class="round-header">${getRoundLabel(rIndex, totalRounds)}</div><div class="round-slots">`;
+
+        round.forEach((match, mIndex) => {
+          const winner = getWinner(match);
+          const animate = options.animateRound === rIndex && options.animateMatch === mIndex ? 'pulse-in' : '';
+          html += `
+            <div class="match-slot">
+              <div class="match ${animate}" data-round="${rIndex}" data-match="${mIndex}">
+                ${renderTeamCard(match.team1, match, 1, winner, rIndex, mIndex)}
+                ${renderTeamCard(match.team2, match, 2, winner, rIndex, mIndex)}
+              </div>
+            </div>`;
+        });
+
+        html += '</div></section>';
+      });
+
+      html += `
+        <aside class="champion-pedestal">
+          <div class="champion-card ${champion ? 'pulse-in' : ''}">
+            <div class="champion-icon">🏆</div>
+            <div class="champion-label">Champion</div>
+            <div class="champion-name">${escapeHtml(champion?.name || 'TBD')}</div>
+            <div class="champion-sub">${champion ? '優勝者が確定しました。' : '決勝の勝者がここに表示されます。'}</div>
+          </div>
+        </aside>
+      `;
+
+      html += '</div></div>';
+      els.board.innerHTML = html;
+      drawConnectors();
+    }
+
+    function drawConnectors() {
+      const layer = document.getElementById('connectorLayer');
+      const boardEl = els.board.querySelector('.board');
+      if (!layer || !boardEl) return;
+
+      const boardRect = boardEl.getBoundingClientRect();
+      const width = Math.ceil(boardRect.width);
+      const height = Math.ceil(boardRect.height);
+      layer.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      layer.setAttribute('width', String(width));
+      layer.setAttribute('height', String(height));
+      layer.innerHTML = '';
+
+      const addSegment = (x1, y1, x2, y2) => {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${x1} ${y1} L ${x2} ${y2}`);
+        path.setAttribute('class', 'connector-path');
+        layer.appendChild(path);
+      };
+
+      for (let rIndex = 0; rIndex < state.rounds.length - 1; rIndex++) {
+        const round = state.rounds[rIndex];
+
+        for (let pairStart = 0; pairStart < round.length; pairStart += 2) {
+          const topMatch = boardEl.querySelector(`.match[data-round="${rIndex}"][data-match="${pairStart}"]`);
+          const bottomMatch = boardEl.querySelector(`.match[data-round="${rIndex}"][data-match="${pairStart + 1}"]`);
+          const nextMatch = boardEl.querySelector(`.match[data-round="${rIndex + 1}"][data-match="${Math.floor(pairStart / 2)}"]`);
+          if (!topMatch || !bottomMatch || !nextMatch) continue;
+
+          const topCards = topMatch.querySelectorAll('.team-card');
+          const bottomCards = bottomMatch.querySelectorAll('.team-card');
+          if (topCards.length < 2 || bottomCards.length < 2) continue;
+
+          const rects = [
+            topCards[0].getBoundingClientRect(),
+            topCards[1].getBoundingClientRect(),
+            bottomCards[0].getBoundingClientRect(),
+            bottomCards[1].getBoundingClientRect(),
+          ];
+          const nextRect = nextMatch.getBoundingClientRect();
+
+          const y1 = (rects[0].top - boardRect.top) + (rects[0].height / 2);
+          const y2 = (rects[1].top - boardRect.top) + (rects[1].height / 2);
+          const y3 = (rects[2].top - boardRect.top) + (rects[2].height / 2);
+          const y4 = (rects[3].top - boardRect.top) + (rects[3].height / 2);
+          const meetTop = (y1 + y2) / 2;
+          const meetBottom = (y3 + y4) / 2;
+          const meetFinal = (meetTop + meetBottom) / 2;
+
+          const sourceX = Math.max(...rects.map((rect) => rect.right - boardRect.left));
+          const trunkX1 = sourceX + 16;
+          const trunkX2 = trunkX1 + 38;
+          const nextX = nextRect.left - boardRect.left;
+          const nextY = (nextRect.top - boardRect.top) + (nextRect.height / 2);
+
+          addSegment(sourceX, y1, trunkX1, y1);
+          addSegment(sourceX, y2, trunkX1, y2);
+          addSegment(sourceX, y3, trunkX1, y3);
+          addSegment(sourceX, y4, trunkX1, y4);
+          addSegment(trunkX1, y1, trunkX1, meetTop);
+          addSegment(trunkX1, y2, trunkX1, meetTop);
+          addSegment(trunkX1, y3, trunkX1, meetBottom);
+          addSegment(trunkX1, y4, trunkX1, meetBottom);
+          addSegment(trunkX1, meetTop, trunkX2, meetTop);
+          addSegment(trunkX1, meetBottom, trunkX2, meetBottom);
+          addSegment(trunkX2, meetTop, trunkX2, meetFinal);
+          addSegment(trunkX2, meetBottom, trunkX2, meetFinal);
+          addSegment(trunkX2, meetFinal, nextX, meetFinal);
+          addSegment(nextX, meetFinal, nextX, nextY);
+        }
+      }
+    }
+
+    function renderMeta() {
+      document.body.classList.toggle('view-only-mode', state.viewOnly);
+      els.tournamentTitle.textContent = state.title;
+      els.subText.textContent = state.viewOnly
+        ? '現在は閲覧モードです。勝敗登録は編集用URLから行ってください。'
+        : '参加者カードとトーナメント表を同期表示します。クリックで勝者を登録すると、次ラウンドへ自動反映されます。';
+      els.modeStat.textContent = state.viewOnly ? '閲覧' : '編集';
+      els.entrantStat.textContent = state.size;
+      els.matchStat.textContent = state.size - 1;
+      document.title = `${state.title} | Tournament`;
+      els.editorPanel.classList.toggle('hidden', state.viewOnly);
+    }
+
+    function renderAll(options = {}) {
+      renderMeta();
+      renderParticipants();
+      renderBoard(options);
+      updateShareUrl();
+    }
+
+    function openMatchModal(roundIndex, matchIndex) {
+      const match = state.rounds[roundIndex][matchIndex];
+      if (!match?.team1 || !match?.team2 || state.viewOnly) return;
+
+      state.selectedMatch = { roundIndex, matchIndex };
+      els.modalText.textContent = `${match.team1.name} vs ${match.team2.name} の勝者を選択してください。`;
+      els.versusButtons.innerHTML = [match.team1, match.team2].map((team) => `
+        <button data-winner-id="${team.id}">
+          <span>${escapeHtml(team.name)}</span>
+          <small>クリックで勝者登録</small>
+        </button>
+      `).join('');
+
+      els.versusButtons.querySelectorAll('button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          setWinner(roundIndex, matchIndex, btn.dataset.winnerId);
+        });
+      });
+
+      els.matchModalBackdrop.classList.add('open');
+    }
+
+    function closeModal() {
+      els.matchModalBackdrop.classList.remove('open');
+      state.selectedMatch = null;
+    }
+
+    function setSample16() {
+      els.sizeSelect.value = '16';
+      els.namesInput.value = createDefaultNames(16);
+      showToast('16人サンプルをセットしました');
+    }
+
+    async function copyShareUrl() {
+      try {
+        await navigator.clipboard.writeText(els.shareUrl.value);
+        showToast('共有URLをコピーしました');
+      } catch (_) {
+        els.shareUrl.select();
+        document.execCommand('copy');
+        showToast('共有URLをコピーしました');
+      }
+    }
+
+    function openViewMode() {
+      window.open(els.shareUrl.value, '_blank', 'noopener');
+    }
+
+    function bindEvents() {
+      els.board.addEventListener('click', (event) => {
+        const card = event.target.closest('.team-card.clickable');
+        if (!card || state.viewOnly) return;
+        const roundIndex = Number(card.dataset.round);
+        const matchIndex = Number(card.dataset.match);
+        openMatchModal(roundIndex, matchIndex);
+      });
+
+      els.generateBtn.addEventListener('click', () => {
+        createTournament({
+          title: els.titleInput.value,
+          size: els.sizeSelect.value,
+          names: els.namesInput.value,
+        });
+      });
+
+      els.resetBtn.addEventListener('click', resetMatches);
+      els.sample16Btn.addEventListener('click', setSample16);
+      els.clearBtn.addEventListener('click', clearAll);
+      els.copyUrlBtn.addEventListener('click', copyShareUrl);
+      els.openViewBtn.addEventListener('click', openViewMode);
+      els.closeModalBtn.addEventListener('click', closeModal);
+
+      els.matchModalBackdrop.addEventListener('click', (e) => {
+        if (e.target === els.matchModalBackdrop) closeModal();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+      });
+
+      els.sizeSelect.addEventListener('change', () => {
+        const size = Number(els.sizeSelect.value);
+        const currentNames = els.namesInput.value.split('\n').map((v) => v.trim()).filter(Boolean);
+        while (currentNames.length < size) currentNames.push(`Player ${currentNames.length + 1}`);
+        els.namesInput.value = currentNames.slice(0, size).join('\n');
+      });
+
+      window.addEventListener('resize', () => drawConnectors());
+    }
+
+    function init() {
+      bindEvents();
+      const loaded = loadState();
+
+      if (!loaded) {
+        state.title = DEFAULT_TITLE;
+        state.size = DEFAULT_SIZE;
+        state.participants = generateParticipants(DEFAULT_SIZE, createDefaultNames(DEFAULT_SIZE));
+        state.rounds = createEmptyRounds(state.participants);
+      }
+
+      syncInputsFromState();
+      renderAll();
+    }
+
+    init();
+  </script>
+</body>
+</html>
